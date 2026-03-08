@@ -5,7 +5,7 @@ export interface ToolCall {
   type: 'function';
   function: {
     name: string;
-    arguments: string; // JSON string
+    arguments: string; 
   };
 }
 
@@ -13,7 +13,7 @@ export interface ChatMessage {
   role: MessageRole;
   content: string | null;
   tool_calls?: ToolCall[];
-  tool_call_id?: string; // Used when role is 'tool'
+  tool_call_id?: string; 
 }
 
 export interface ChatCompletionRequest {
@@ -21,7 +21,7 @@ export interface ChatCompletionRequest {
   messages: ChatMessage[];
   temperature?: number;
   max_tokens?: number;
-  tools?: any[]; // We'll refine tool definitions in later steps
+  tools?: any[]; 
   stream?: boolean;
 }
 
