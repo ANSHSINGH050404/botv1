@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAI } from './context/AIContext';
 import type { ChatMessage } from '../api/types';
 
@@ -28,18 +28,6 @@ export const REPL = () => {
   const { client, model } = useAI();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [spinnerFrame, setSpinnerFrame] = useState(0);
-
-  useEffect(() => {
-    if (!isStreaming) {
-      setSpinnerFrame(0);
-      return;
-    }
-    const id = setInterval(() => {
-      setSpinnerFrame((prev) => (prev + 1) % 4);
-    }, 120);
-    return () => clearInterval(id);
-  }, [isStreaming]);
 
   const sendMessage = async (text: string) => {
     const newUserMsg: ChatMessage = { role: 'user', content: text };
@@ -66,11 +54,14 @@ export const REPL = () => {
     }
   };
 
-  const spinner = ['|', '/', '-', '\\'][spinnerFrame];
-
   return (
     <div className="flex flex-col h-full">
-      {isStreaming ? <div>Thinking {spinner}</div> : null}
+      {isStreaming ? (
+        <div className="flex items-center gap-2 text-sm text-slate-600">
+          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+          <span>Thinking...</span>
+        </div>
+      ) : null}
       <ChatInput onSend={sendMessage} />
     </div>
   );
