@@ -1,6 +1,9 @@
 import { Command } from 'commander';
 import * as p from '@clack/prompts';
 import { ClientFactory, type ProviderType } from './src/api/clientFactory';
+import { QueryHandler } from './src/core/query';
+import { runMessageLoop } from './src/core/messageLoop';
+import type { ChatMessage } from './src/api/types';
 import fs from 'fs';
 
 const program = new Command();
@@ -58,10 +61,37 @@ async function main() {
     }
   }
 
-  ClientFactory.createClient(provider, apiKey);
   p.outro(`Bot initialized with ${provider}. Start chatting below!`);
 
-  // Start your message loop here...
+  const client = ClientFactory.createClient(provider, apiKey);
+  const queryHandler = new QueryHandler(client, getDefaultModel(provider));
+  let messages: ChatMessage[] = [];
+
+  while (true) {
+    const input = await p.text({
+      message: "You",
+      placeholder: "Ask anything ('exit' to quit)",
+      validate: (value) => {
+        if (!value?.trim()) return 'Please enter a message.';
+      },
+    });
+
+    if (p.isCancel(input)) {
+      p.cancel('Session ended.');
+      process.exit(0);
+    }
+
+    const normalized = input.trim().toLowerCase();
+    if (normalized === 'exit' || normalized === 'quit') {
+      p.outro('Goodbye.');
+      process.exit(0);
+    }
+
+    messages.push({ role: 'user', content: input });
+    process.stdout.write('\nAssistant: ');
+    messages = await runMessageLoop(queryHandler, messages);
+    process.stdout.write('\n\n');
+  }
 }
 
 function getEnvKey(provider: ProviderType) {
@@ -71,6 +101,15 @@ function getEnvKey(provider: ProviderType) {
     anthropic: process.env.ANTHROPIC_API_KEY,
   };
   return keys[provider];
+}
+
+function getDefaultModel(provider: ProviderType) {
+  const models: Record<ProviderType, string> = {
+    openai: process.env.LLM_MODEL || 'gpt-4o-mini',
+    gemini: process.env.LLM_MODEL || 'gemini-1.5-flash',
+    anthropic: process.env.LLM_MODEL || 'claude-3-5-sonnet-latest',
+  };
+  return models[provider];
 }
 
 main();
