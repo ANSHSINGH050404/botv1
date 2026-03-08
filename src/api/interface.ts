@@ -12,6 +12,6 @@ export interface ILLMClient {
    */
   streamChatCompletion(
     request: ChatCompletionRequest
-  ): Promise<AsyncIterable<ChatCompletionChunk>>;
+  ): AsyncIterable<ChatCompletionChunk>;
   
 }

@@ -1,24 +1,21 @@
 import { Command } from 'commander';
 import * as p from '@clack/prompts';
-import { ClientFactory,type ProviderType } from './src/api/clientFactory';
-import { config } from './src/config';
+import { ClientFactory, type ProviderType } from './src/api/clientFactory';
 import fs from 'fs';
 
 const program = new Command();
 
 async function main() {
-  p.intro('🚀 Welcome to PathForge Agent Engine');
+  p.intro('Welcome to PathForge Agent Engine');
 
-  // 1. Check for CLI flags first
   program
     .option('-p, --provider <type>', 'AI provider (openai, gemini, anthropic)')
     .parse(process.argv);
 
-  let { provider } = program.opts();
+  let { provider } = program.opts<{ provider?: ProviderType }>();
 
-  // 2. Interactive Selection if no flag is provided
   if (!provider) {
-    provider = await p.select({
+    const selectedProvider = await p.select({
       message: 'Which AI provider would you like to use today?',
       options: [
         { value: 'openai', label: 'OpenAI (GPT-4)', hint: 'Best for reasoning' },
@@ -27,30 +24,33 @@ async function main() {
       ],
     });
 
-    if (p.isCancel(provider)) {
+    if (p.isCancel(selectedProvider)) {
       p.cancel('Operation cancelled.');
       process.exit(0);
     }
+
+    provider = selectedProvider;
   }
 
-  // 3. Credential Validation & On-the-fly Input
   let apiKey = getEnvKey(provider);
 
   if (!apiKey) {
-    p.log.warn(`⚠️  Missing API Key for ${provider.toUpperCase()}`);
-    apiKey = await p.password({
+    p.log.warn(`Missing API Key for ${provider.toUpperCase()}`);
+
+    const enteredApiKey = await p.password({
       message: `Please enter your ${provider} API Key:`,
       validate: (value) => {
         if (!value) return 'API Key is required to continue.';
-      }
+      },
     });
 
-    if (p.isCancel(apiKey)) {
+    if (p.isCancel(enteredApiKey)) {
       p.cancel('Operation cancelled.');
       process.exit(0);
     }
 
-    // Optional: Auto-save to .env for next time
+    apiKey = enteredApiKey;
+
     const save = await p.confirm({ message: 'Would you like to save this key to your .env file?' });
     if (save) {
       fs.appendFileSync('.env', `\n${provider.toUpperCase()}_API_KEY=${apiKey}`);
@@ -58,15 +58,14 @@ async function main() {
     }
   }
 
-  // 4. Hand off to the Engine
-  const client = ClientFactory.createClient(provider as ProviderType, apiKey as string);
+  ClientFactory.createClient(provider, apiKey);
   p.outro(`Bot initialized with ${provider}. Start chatting below!`);
-  
+
   // Start your message loop here...
 }
 
-function getEnvKey(provider: string) {
-  const keys: Record<string, string | undefined> = {
+function getEnvKey(provider: ProviderType) {
+  const keys: Record<ProviderType, string | undefined> = {
     openai: process.env.OPENAI_API_KEY,
     gemini: process.env.GEMINI_API_KEY,
     anthropic: process.env.ANTHROPIC_API_KEY,

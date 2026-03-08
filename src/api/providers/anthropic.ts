@@ -15,7 +15,7 @@ export class AnthropicProvider implements ILLMClient {
 
     const stream = await this.client.messages.create({
       model: request.model,
-      system: systemMessage,
+      system: systemMessage ?? undefined,
       messages: userMessages as any,
       max_tokens: request.max_tokens || 4096,
       stream: true,

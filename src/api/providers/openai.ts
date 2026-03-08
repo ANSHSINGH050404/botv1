@@ -10,16 +10,23 @@ export class OpenAIProvider implements ILLMClient {
   }
 
   async *streamChatCompletion(request: ChatCompletionRequest): AsyncIterable<ChatCompletionChunk> {
-    const stream = await this.client.chat.completions.create({
-      ...request,
+    const messages = request.messages.map((m) => ({
+      ...m,
+      content: m.content ?? '',
+    }));
+
+    const stream = (await this.client.chat.completions.create({
+      ...(request as any),
+      messages: messages as any,
       stream: true,
-    });
+    } as any)) as unknown as AsyncIterable<any>;
 
     for await (const chunk of stream) {
+      const choice = chunk.choices[0];
       yield {
         id: chunk.id,
-        delta: chunk.choices[0].delta as any,
-        finish_reason: chunk.choices[0].finish_reason,
+        delta: (choice?.delta ?? {}) as any,
+        finish_reason: choice?.finish_reason ?? null,
       };
     }
   }
