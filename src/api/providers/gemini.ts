@@ -27,10 +27,22 @@ export class GeminiProvider implements ILLMClient {
       })),
     }] : undefined;
 
-    const result = await model.generateContentStream({
-      contents,
-      tools,
-    } as any);
+    let result: any;
+    try {
+      result = await model.generateContentStream({
+        contents,
+        tools,
+      } as any);
+    } catch (error) {
+      // Some Gemini models reject complex tool schemas. Retry without tools so chat still works.
+      if (tools) {
+        result = await model.generateContentStream({
+          contents,
+        } as any);
+      } else {
+        throw error;
+      }
+    }
 
     for await (const chunk of result.stream) {
       const toolCalls = extractToolCalls(chunk as any);
