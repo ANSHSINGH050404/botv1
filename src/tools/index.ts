@@ -2,6 +2,11 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import type { Tool } from "./types";
 import type { ToolDefinition } from "../api/types";
 import { globTool } from "./glob";
+import { lsTool } from "./ls";
+import { readFileTool } from "./readFile";
+import { grepTool } from "./grep";
+import { pwdTool } from "./pwd";
+import { fileInfoTool } from "./fileInfo";
 
 const toolRegistry = new Map<string, Tool>();
 
@@ -10,6 +15,11 @@ function registerTool(tool: Tool) {
 }
 
 registerTool(globTool);
+registerTool(lsTool);
+registerTool(readFileTool);
+registerTool(grepTool);
+registerTool(pwdTool);
+registerTool(fileInfoTool);
 
 export function getTool(name: string): Tool | undefined {
   return toolRegistry.get(name);
