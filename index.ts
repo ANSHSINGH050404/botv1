@@ -88,7 +88,6 @@ async function main() {
     }
 
     messages.push({ role: 'user', content: input });
-    process.stdout.write('\nAssistant: ');
     messages = await runMessageLoop(queryHandler, messages);
     process.stdout.write('\n\n');
   }
