@@ -5,6 +5,8 @@ import { QueryHandler } from './src/core/query';
 import { runMessageLoop } from './src/core/messageLoop';
 import type { ChatMessage } from './src/api/types';
 import fs from 'fs';
+import { buildSystemPrompt } from './src/core/systemPrompt';
+import { config, getDefaultModel, getEnvKey } from './src/config';
 
 const program = new Command();
 
@@ -16,6 +18,7 @@ async function main() {
     .parse(process.argv);
 
   let { provider } = program.opts<{ provider?: ProviderType }>();
+  provider = provider || config.provider;
 
   if (!provider) {
     const selectedProvider = await p.select({
@@ -65,7 +68,7 @@ async function main() {
 
   const client = ClientFactory.createClient(provider, apiKey);
   const queryHandler = new QueryHandler(client, getDefaultModel(provider));
-  let messages: ChatMessage[] = [];
+  let messages: ChatMessage[] = [{ role: 'system', content: buildSystemPrompt() }];
 
   while (true) {
     const input = await p.text({
@@ -91,24 +94,6 @@ async function main() {
     messages = await runMessageLoop(queryHandler, messages);
     process.stdout.write('\n\n');
   }
-}
-
-function getEnvKey(provider: ProviderType) {
-  const keys: Record<ProviderType, string | undefined> = {
-    openai: process.env.OPENAI_API_KEY,
-    gemini: process.env.GEMINI_API_KEY,
-    anthropic: process.env.ANTHROPIC_API_KEY,
-  };
-  return keys[provider];
-}
-
-function getDefaultModel(provider: ProviderType) {
-  const models: Record<ProviderType, string> = {
-    openai: process.env.LLM_MODEL || 'gpt-4o-mini',
-    gemini: process.env.LLM_MODEL || 'gemini-1.5-flash',
-    anthropic: process.env.LLM_MODEL || 'claude-3-5-sonnet-latest',
-  };
-  return models[provider];
 }
 
 main();

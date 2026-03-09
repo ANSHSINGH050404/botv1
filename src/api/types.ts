@@ -9,42 +9,8 @@ export interface ToolCall {
   };
 }
 
-export interface ChatMessage {
-  role: MessageRole;
-  content: string | null;
-  tool_calls?: ToolCall[];
-  tool_call_id?: string;
-  tool_name?: string;
-}
-
-
-export interface ChatCompletionRequest {
-  model: string;
-  messages: ChatMessage[];
-  temperature?: number;
-  max_tokens?: number;
-  tools?: any[]; 
-  stream?: boolean;
-}
-
-export interface ChatCompletionChunk {
-  id: string;
-  delta: Partial<ChatMessage>;
-  finish_reason: string | null;
-}
-
-
-export interface ToolCall {
-  id: string;
-  type: "function";
-  function: {
-    name: string;
-    arguments: string;
-  };
-}
-
 export interface ToolDefinition {
-  type: "function";
+  type: 'function';
   function: {
     name: string;
     description: string;
@@ -55,9 +21,35 @@ export interface ToolDefinition {
 export interface ToolCallDelta {
   index: number;
   id?: string;
-  type?: "function";
+  type?: 'function';
   function?: {
     name?: string;
     arguments?: string;
   };
+}
+
+export interface ChatMessage {
+  role: MessageRole;
+  content: string | null;
+  tool_calls?: ToolCall[];
+  tool_call_id?: string;
+  tool_name?: string;
+}
+
+export interface ChatCompletionRequest {
+  model: string;
+  messages: ChatMessage[];
+  temperature?: number;
+  max_tokens?: number;
+  tools?: ToolDefinition[];
+  stream?: boolean;
+}
+
+export interface ChatCompletionChunk {
+  id: string;
+  delta: {
+    content?: string | null;
+    tool_calls?: ToolCallDelta[];
+  };
+  finish_reason: string | null;
 }

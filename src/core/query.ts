@@ -1,5 +1,6 @@
 import type { ILLMClient } from '../api/interface';
 import type { ChatMessage, ChatCompletionRequest } from '../api/types';
+import { getToolDefinitions } from '../tools';
 
 export class QueryHandler {
   private client: ILLMClient;
@@ -15,7 +16,8 @@ export class QueryHandler {
     const request: ChatCompletionRequest = {
       model: this.model,
       messages: messages,
-      stream: true
+      tools: getToolDefinitions(),
+      stream: true,
     };
 
     // This call is now provider-agnostic!

@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { ILLMClient } from '../interface';
-import type { ChatCompletionRequest, ChatCompletionChunk } from '../types';
+import type { ChatCompletionRequest, ChatCompletionChunk, ChatMessage } from '../types';
 
 export class GeminiProvider implements ILLMClient {
   private genAI: GoogleGenerativeAI;
@@ -10,13 +10,15 @@ export class GeminiProvider implements ILLMClient {
   }
 
   async *streamChatCompletion(request: ChatCompletionRequest): AsyncIterable<ChatCompletionChunk> {
-    const model = this.genAI.getGenerativeModel({ model: request.model });
-    
-    // Map OpenAI-style messages to Gemini contents
-    const contents = request.messages.map(m => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content || '' }],
-    }));
+    const systemMessage = request.messages.find((m) => m.role === 'system')?.content ?? undefined;
+    const model = this.genAI.getGenerativeModel({
+      model: request.model,
+      systemInstruction: systemMessage || undefined,
+    });
+
+    const contents = request.messages
+      .filter((m) => m.role !== 'system')
+      .map(mapMessageToGeminiContent);
 
     const result = await model.generateContentStream({ contents });
 
@@ -24,8 +26,19 @@ export class GeminiProvider implements ILLMClient {
       yield {
         id: 'gemini-res',
         delta: { content: chunk.text() },
-        finish_reason: null, // Gemini handles finish reasons differently
+        finish_reason: null,
       };
     }
   }
+}
+
+function mapMessageToGeminiContent(message: ChatMessage) {
+  const text = message.role === 'tool'
+    ? `Tool result (${message.tool_name || 'unknown'}): ${message.content || ''}`
+    : message.content || '';
+
+  return {
+    role: message.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text }],
+  };
 }
