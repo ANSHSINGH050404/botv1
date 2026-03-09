@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { glob } from "glob";
-import type { Tool, ToolResult } from "./types.js";
-import { colors } from "../utils/colors.js";
+import type { Tool, ToolResult } from "./types";
+import { colors } from "../utils/colors";
+
 
 const inputSchema = z.object({
   pattern: z.string().describe("The glob pattern to match files against"),
