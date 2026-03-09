@@ -7,6 +7,8 @@ import { readFileTool } from "./readFile";
 import { grepTool } from "./grep";
 import { pwdTool } from "./pwd";
 import { fileInfoTool } from "./fileInfo";
+import { writeFileTool } from "./writeFile";
+import { replaceInFileTool } from "./replaceInFile";
 
 const toolRegistry = new Map<string, Tool>();
 
@@ -20,6 +22,8 @@ registerTool(readFileTool);
 registerTool(grepTool);
 registerTool(pwdTool);
 registerTool(fileInfoTool);
+registerTool(writeFileTool);
+registerTool(replaceInFileTool);
 
 export function getTool(name: string): Tool | undefined {
   return toolRegistry.get(name);

@@ -1,8 +1,8 @@
 import { z } from "zod";
 import fs from "node:fs/promises";
-import path from "node:path";
 import type { Tool, ToolResult } from "./types";
 import { colors } from "../utils/colors";
+import { resolvePathInWorkspace } from "./pathUtils";
 
 const inputSchema = z.object({
   path: z.string().describe("Path to inspect"),
@@ -15,7 +15,7 @@ export const fileInfoTool: Tool = {
 
   async call(input): Promise<ToolResult> {
     const parsed = inputSchema.parse(input);
-    const absolutePath = path.resolve(parsed.path);
+    const absolutePath = resolvePathInWorkspace(parsed.path);
     try {
       const stat = await fs.stat(absolutePath);
       const payload = {
