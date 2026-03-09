@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { ILLMClient } from '../interface';
-import type { ChatCompletionRequest, ChatCompletionChunk, ChatMessage } from '../types';
+import type { ChatCompletionRequest, ChatCompletionChunk, ChatMessage, ToolCallDelta } from '../types';
 
 export class GeminiProvider implements ILLMClient {
   private genAI: GoogleGenerativeAI;
@@ -19,26 +19,108 @@ export class GeminiProvider implements ILLMClient {
     const contents = request.messages
       .filter((m) => m.role !== 'system')
       .map(mapMessageToGeminiContent);
+    const tools = request.tools?.length ? [{
+      functionDeclarations: request.tools.map((tool) => ({
+        name: tool.function.name,
+        description: tool.function.description,
+        parameters: tool.function.parameters,
+      })),
+    }] : undefined;
 
-    const result = await model.generateContentStream({ contents });
+    const result = await model.generateContentStream({
+      contents,
+      tools,
+    } as any);
 
     for await (const chunk of result.stream) {
+      const toolCalls = extractToolCalls(chunk as any);
+      if (toolCalls.length > 0) {
+        yield {
+          id: 'gemini-res',
+          delta: { tool_calls: toolCalls },
+          finish_reason: null,
+        };
+      }
+
+      const text = chunk.text();
+      if (text) {
+        yield {
+          id: 'gemini-res',
+          delta: { content: text },
+          finish_reason: null,
+        };
+      }
+
+      const finishReason = (chunk as any)?.candidates?.[0]?.finishReason;
       yield {
         id: 'gemini-res',
-        delta: { content: chunk.text() },
-        finish_reason: null,
+        delta: {},
+        finish_reason: typeof finishReason === 'string' ? finishReason.toLowerCase() : null,
       };
     }
   }
 }
 
 function mapMessageToGeminiContent(message: ChatMessage) {
-  const text = message.role === 'tool'
-    ? `Tool result (${message.tool_name || 'unknown'}): ${message.content || ''}`
-    : message.content || '';
+  if (message.role === 'tool') {
+    return {
+      role: 'user',
+      parts: [{
+        functionResponse: {
+          name: message.tool_name || 'tool',
+          response: {
+            content: message.content || '',
+          },
+        },
+      }],
+    };
+  }
+
+  if (message.role === 'assistant' && message.tool_calls && message.tool_calls.length > 0) {
+    return {
+      role: 'model',
+      parts: message.tool_calls.map((call) => ({
+        functionCall: {
+          name: call.function.name,
+          args: safeParseJson(call.function.arguments),
+        },
+      })),
+    };
+  }
+
+  const text = message.content || '';
 
   return {
     role: message.role === 'assistant' ? 'model' : 'user',
     parts: [{ text }],
   };
+}
+
+function extractToolCalls(chunk: any): ToolCallDelta[] {
+  const parts = chunk?.candidates?.[0]?.content?.parts;
+  if (!Array.isArray(parts)) return [];
+
+  const toolCalls: ToolCallDelta[] = [];
+  for (const [index, part] of parts.entries()) {
+    const functionCall = part?.functionCall;
+    if (!functionCall?.name) continue;
+    toolCalls.push({
+      index,
+      id: `gemini_tool_${index}`,
+      type: 'function',
+      function: {
+        name: functionCall.name,
+        arguments: JSON.stringify(functionCall.args ?? {}),
+      },
+    });
+  }
+  return toolCalls;
+}
+
+function safeParseJson(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
 }
