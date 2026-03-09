@@ -9,6 +9,7 @@ import { pwdTool } from "./pwd";
 import { fileInfoTool } from "./fileInfo";
 import { writeFileTool } from "./writeFile";
 import { replaceInFileTool } from "./replaceInFile";
+import { multiEditTool } from "./multiEdit";
 
 const toolRegistry = new Map<string, Tool>();
 
@@ -24,6 +25,7 @@ registerTool(pwdTool);
 registerTool(fileInfoTool);
 registerTool(writeFileTool);
 registerTool(replaceInFileTool);
+registerTool(multiEditTool);
 
 export function getTool(name: string): Tool | undefined {
   return toolRegistry.get(name);

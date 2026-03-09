@@ -11,6 +11,7 @@ describe("tool registry", () => {
     expect(names.includes("read")).toBeTrue();
     expect(names.includes("write")).toBeTrue();
     expect(names.includes("edit")).toBeTrue();
+    expect(names.includes("multiEdit")).toBeTrue();
     expect(names.includes("grep")).toBeTrue();
     expect(names.includes("pwd")).toBeTrue();
     expect(names.includes("fileInfo")).toBeTrue();
@@ -22,6 +23,7 @@ describe("tool registry", () => {
     expect(definitions.some((d) => d.function.name === "read")).toBeTrue();
     expect(definitions.some((d) => d.function.name === "write")).toBeTrue();
     expect(definitions.some((d) => d.function.name === "edit")).toBeTrue();
+    expect(definitions.some((d) => d.function.name === "multiEdit")).toBeTrue();
   });
 
   it("executes pwd tool", async () => {
@@ -62,5 +64,42 @@ describe("tool registry", () => {
 
     const readResult = await read!.call({ path: testPath });
     expect(readResult.output.includes("hello agent")).toBeTrue();
+  });
+
+  it("supports atomic multiEdit", async () => {
+    const testDir = path.resolve(process.cwd(), "tmp-tool-tests");
+    const testPath = path.join(testDir, "multi.txt");
+    await fs.mkdir(testDir, { recursive: true });
+    await fs.writeFile(testPath, "alpha beta gamma", "utf8");
+
+    const multiEdit = getTool("multiEdit");
+    const read = getTool("read");
+
+    expect(multiEdit).toBeDefined();
+    expect(read).toBeDefined();
+
+    const ok = await multiEdit!.call({
+      path: testPath,
+      edits: [
+        { oldString: "alpha", newString: "ALPHA" },
+        { oldString: "gamma", newString: "GAMMA" },
+      ],
+    });
+    expect(ok.isError).toBeUndefined();
+
+    const afterOk = await read!.call({ path: testPath });
+    expect(afterOk.output.includes("ALPHA beta GAMMA")).toBeTrue();
+
+    const fail = await multiEdit!.call({
+      path: testPath,
+      edits: [
+        { oldString: "ALPHA", newString: "alpha" },
+        { oldString: "missing", newString: "x" },
+      ],
+    });
+    expect(fail.isError).toBeTrue();
+
+    const afterFail = await read!.call({ path: testPath });
+    expect(afterFail.output.includes("ALPHA beta GAMMA")).toBeTrue();
   });
 });
