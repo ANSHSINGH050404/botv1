@@ -13,8 +13,10 @@ export interface ChatMessage {
   role: MessageRole;
   content: string | null;
   tool_calls?: ToolCall[];
-  tool_call_id?: string; 
+  tool_call_id?: string;
+  tool_name?: string;
 }
+
 
 export interface ChatCompletionRequest {
   model: string;

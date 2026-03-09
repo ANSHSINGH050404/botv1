@@ -1,6 +1,7 @@
 import { zodToJsonSchema } from "zod-to-json-schema";
-import type { Tool } from "./types.js";
-import type { ToolDefinition } from "../api/types.js";
+import type { Tool } from "./types";
+import type { ToolDefinition } from "../api/types";
+
 
 
 // import { grepTool } from "./grep.js";
