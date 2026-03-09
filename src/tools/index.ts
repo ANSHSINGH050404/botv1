@@ -1,10 +1,7 @@
 import { zodToJsonSchema } from "zod-to-json-schema";
 import type { Tool } from "./types";
 import type { ToolDefinition } from "../api/types";
-
-
-
-// import { grepTool } from "./grep.js";
+import { globTool } from "./glob";
 
 const toolRegistry = new Map<string, Tool>();
 
@@ -12,7 +9,7 @@ function registerTool(tool: Tool) {
   toolRegistry.set(tool.name, tool);
 }
 
-// registerTool(grepTool);
+registerTool(globTool);
 
 export function getTool(name: string): Tool | undefined {
   return toolRegistry.get(name);
